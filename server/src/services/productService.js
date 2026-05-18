@@ -1,6 +1,5 @@
-const Product = require("../models/Product");
+﻿const Product = require("../models/Product");
 
-// Lấy tất cả sản phẩm (kèm lọc, tìm kiếm, phân trang)
 const getAllProducts = async (query) => {
   const {
     search = "",
@@ -16,27 +15,22 @@ const getAllProducts = async (query) => {
 
   const filter = { isActive: true };
 
-  // Tìm kiếm theo tên
   if (search) {
     filter.name = { $regex: search, $options: "i" };
   }
 
-  // Lọc theo danh mục
   if (category) {
     filter.category = category;
   }
 
-  // Lọc theo thương hiệu
   if (brand) {
     filter.brand = { $regex: brand, $options: "i" };
   }
 
-  // Lọc theo loại pin
   if (batteryType) {
     filter.batteryType = batteryType;
   }
 
-  // Lọc theo giá
   filter.price = { $gte: Number(minPrice), $lte: Number(maxPrice) };
 
   const skip = (Number(page) - 1) * Number(limit);
@@ -58,19 +52,20 @@ const getAllProducts = async (query) => {
   };
 };
 
-// Lấy sản phẩm theo slug
 const getProductBySlug = async (slug) => {
-  const product = await Product.findOne({ slug, isActive: true }).populate(
-    "category",
-    "name slug icon"
-  );
+  const product = await Product.findOneAndUpdate(
+    { slug, isActive: true },
+    { $inc: { views: 1 } },
+    { new: true }
+  ).populate("category", "name slug icon");
+
   if (!product) {
-    throw new Error("Không tìm thấy sản phẩm");
+    throw new Error("Khong tim thay san pham");
   }
+
   return product;
 };
 
-// Sản phẩm mới nhất
 const getNewestProducts = async (limit = 8) => {
   return await Product.find({ isActive: true })
     .populate("category", "name slug")
@@ -78,15 +73,20 @@ const getNewestProducts = async (limit = 8) => {
     .limit(limit);
 };
 
-// Sản phẩm bán chạy nhất
-const getBestSellerProducts = async (limit = 8) => {
+const getBestSellerProducts = async (limit = 10) => {
   return await Product.find({ isActive: true })
     .populate("category", "name slug")
     .sort("-sold")
     .limit(limit);
 };
 
-// Sản phẩm khuyến mãi
+const getMostViewedProducts = async (limit = 10) => {
+  return await Product.find({ isActive: true })
+    .populate("category", "name slug")
+    .sort("-views")
+    .limit(limit);
+};
+
 const getPromotionProducts = async (limit = 8) => {
   return await Product.find({ isActive: true, isPromotion: true })
     .populate("category", "name slug")
@@ -94,14 +94,12 @@ const getPromotionProducts = async (limit = 8) => {
     .limit(limit);
 };
 
-// Sản phẩm nổi bật
 const getFeaturedProducts = async (limit = 4) => {
   return await Product.find({ isActive: true, isFeatured: true })
     .populate("category", "name slug")
     .limit(limit);
 };
 
-// Sản phẩm tương tự (cùng danh mục)
 const getSimilarProducts = async (categoryId, excludeId, limit = 4) => {
   return await Product.find({
     isActive: true,
@@ -117,6 +115,7 @@ module.exports = {
   getProductBySlug,
   getNewestProducts,
   getBestSellerProducts,
+  getMostViewedProducts,
   getPromotionProducts,
   getFeaturedProducts,
   getSimilarProducts,

@@ -1,4 +1,4 @@
-﻿import { useEffect } from "react";
+﻿import { useEffect, useMemo, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { Link } from "react-router-dom";
 import { fetchHomeData } from "../store/productSlice";
@@ -7,6 +7,75 @@ import SectionHeader from "../components/common/SectionHeader";
 import EmptyState from "../components/common/EmptyState";
 import Header from "../components/layout/Header";
 import Footer from "../components/layout/Footer";
+
+const PRODUCTS_PER_PAGE = 4;
+
+const HorizontalPager = ({ title, subtitle, action, products = [] }) => {
+  const [page, setPage] = useState(0);
+
+  const totalPages = Math.ceil(products.length / PRODUCTS_PER_PAGE);
+
+  useEffect(() => {
+    if (page >= totalPages) {
+      setPage(0);
+    }
+  }, [page, totalPages]);
+
+  const pagedProducts = useMemo(() => {
+    const start = page * PRODUCTS_PER_PAGE;
+    return products.slice(start, start + PRODUCTS_PER_PAGE);
+  }, [page, products]);
+
+  if (products.length === 0) return null;
+
+  return (
+    <section className="mx-auto max-w-6xl px-4 py-10">
+      <SectionHeader title={title} subtitle={subtitle} action={action} />
+
+      <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-4">
+        {pagedProducts.map((p) => (
+          <ProductCard key={p._id} product={p} />
+        ))}
+      </div>
+
+      {totalPages > 1 && (
+        <div className="mt-6 flex items-center justify-center gap-3">
+          <button
+            type="button"
+            onClick={() => setPage((prev) => Math.max(prev - 1, 0))}
+            disabled={page === 0}
+            className="rounded-md border border-[#c6c6cd] bg-white px-3 py-1.5 text-sm font-semibold text-[#191c1e] disabled:cursor-not-allowed disabled:opacity-40"
+          >
+            Trước
+          </button>
+
+          <div className="flex items-center gap-2">
+            {Array.from({ length: totalPages }, (_, idx) => (
+              <button
+                key={idx}
+                type="button"
+                aria-label={`Trang ${idx + 1}`}
+                onClick={() => setPage(idx)}
+                className={`h-2.5 w-2.5 rounded-full ${
+                  page === idx ? "bg-[#191c1e]" : "bg-[#c6c6cd]"
+                }`}
+              />
+            ))}
+          </div>
+
+          <button
+            type="button"
+            onClick={() => setPage((prev) => Math.min(prev + 1, totalPages - 1))}
+            disabled={page === totalPages - 1}
+            className="rounded-md border border-[#c6c6cd] bg-white px-3 py-1.5 text-sm font-semibold text-[#191c1e] disabled:cursor-not-allowed disabled:opacity-40"
+          >
+            Sau
+          </button>
+        </div>
+      )}
+    </section>
+  );
+};
 
 const HomePage = () => {
   const dispatch = useDispatch();
@@ -45,12 +114,19 @@ const HomePage = () => {
         </div>
       </section>
 
-      <section className="mx-auto max-w-6xl px-4 py-10">
-        <SectionHeader title="Sản phẩm bán chạy" subtitle="Được nhiều khách hàng lựa chọn" action={<Link to="/search?sort=-sold" className="text-xs font-semibold uppercase tracking-wider text-[#191c1e] hover:text-[#416900]">Xem tất cả</Link>} />
-        <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-4">
-          {homeData?.bestSeller?.map((p) => <ProductCard key={p._id} product={p} />)}
-        </div>
-      </section>
+      <HorizontalPager
+        title="Top 10 sản phẩm bán chạy"
+        subtitle="Danh sách sản phẩm có số lượng bán cao nhất"
+        action={<Link to="/search?sort=-sold" className="text-xs font-semibold uppercase tracking-wider text-[#191c1e] hover:text-[#416900]">Xem tất cả</Link>}
+        products={homeData?.bestSeller || []}
+      />
+
+      <HorizontalPager
+        title="Top 10 sản phẩm xem nhiều"
+        subtitle="Danh sách sản phẩm được quan tâm nhiều nhất"
+        action={<Link to="/search?sort=-views" className="text-xs font-semibold uppercase tracking-wider text-[#191c1e] hover:text-[#416900]">Xem tất cả</Link>}
+        products={homeData?.mostViewed || []}
+      />
 
       <Footer />
     </div>
